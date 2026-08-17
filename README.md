@@ -1,6 +1,6 @@
--- Private Project v2.0 - Painel Profissional Preto & Branco
+-- Private Project v2.0 - Painel Profissional Vermelho & Preto
 -- Made By Uriel
--- Interface profissional com FOV no centro da tela
+-- Interface profissional com FOV no centro da tela e AIMBOT
 
 if getgenv().PrivateProject and type(getgenv().PrivateProject.destroy)=="function" then
     pcall(getgenv().PrivateProject.destroy)
@@ -74,8 +74,16 @@ local Cfg = {
     FP_PITCH_MIN = -85, FP_PITCH_MAX = 85,
     GUI_VISIBLE = true,
     CAM_NOCLIP = false,
-    TEAM_COLOR = Color3.fromRGB(255, 255, 255),
+    TEAM_COLOR = Color3.fromRGB(255, 0, 0),
     FOV_VISIBLE = true,
+    -- AIMBOT Configs
+    AIMBOT_ENABLED = true,
+    AIMBOT_SMOOTH = 0.15,
+    AIMBOT_PREDICT = true,
+    AIMBOT_VISIBLE_CHECK = true,
+    AIMBOT_FOV = 180,
+    AIMBOT_TARGET = "HEAD",
+    AIMBOT_KEY = Enum.UserInputType.MouseButton2,
 }
 
 -- Keybinds
@@ -90,29 +98,31 @@ local Binds = {
     CamNoclip  = Enum.KeyCode.V,
     ToggleGUI  = Enum.KeyCode.BackSlash,
     ToggleFOV  = Enum.KeyCode.H,
+    AimBot     = Enum.KeyCode.X,
 }
 
--- ============ TEMA PRETO E BRANCO ============
+-- ============ TEMA VERMELHO E PRETO ============
 local Theme = {
-    bg         = Color3.fromRGB(12, 12, 12),
-    bgDark     = Color3.fromRGB(8, 8, 8),
-    bgCard     = Color3.fromRGB(30, 30, 30),
-    bgInput    = Color3.fromRGB(38, 38, 38),
-    border     = Color3.fromRGB(46, 46, 46),
-    borderLight = Color3.fromRGB(58, 58, 58),
-    textPrimary = Color3.fromRGB(242, 242, 242),
-    textSecondary = Color3.fromRGB(176, 176, 176),
-    textMuted  = Color3.fromRGB(106, 106, 106),
-    accent     = Color3.fromRGB(255, 255, 255),
-    accentDim  = Color3.fromRGB(204, 204, 204),
-    red        = Color3.fromRGB(231, 76, 60),
+    bg         = Color3.fromRGB(10, 10, 10),
+    bgDark     = Color3.fromRGB(5, 5, 5),
+    bgCard     = Color3.fromRGB(18, 18, 18),
+    bgInput    = Color3.fromRGB(30, 30, 30),
+    border     = Color3.fromRGB(40, 40, 40),
+    borderLight = Color3.fromRGB(55, 55, 55),
+    textPrimary = Color3.fromRGB(240, 240, 240),
+    textSecondary = Color3.fromRGB(180, 180, 180),
+    textMuted  = Color3.fromRGB(100, 100, 100),
+    accent     = Color3.fromRGB(255, 40, 40),
+    accentDim  = Color3.fromRGB(200, 20, 20),
+    red        = Color3.fromRGB(255, 40, 40),
     green      = Color3.fromRGB(127, 255, 127),
-    toggleOn   = Color3.fromRGB(255, 255, 255),
-    toggleOff  = Color3.fromRGB(38, 38, 38),
-    sliderFill = Color3.fromRGB(255, 255, 255),
-    sliderBg   = Color3.fromRGB(38, 38, 38),
-    tabActive  = Color3.fromRGB(255, 255, 255),
-    tabIdle    = Color3.fromRGB(12, 12, 12),
+    toggleOn   = Color3.fromRGB(255, 40, 40),
+    toggleOff  = Color3.fromRGB(40, 40, 40),
+    sliderFill = Color3.fromRGB(255, 40, 40),
+    sliderBg   = Color3.fromRGB(30, 30, 30),
+    tabActive  = Color3.fromRGB(255, 40, 40),
+    tabIdle    = Color3.fromRGB(10, 10, 10),
+    glow       = Color3.fromRGB(255, 40, 40),
 }
 
 local AA_NAMES = {[0]="OFF",[1]="SPIN",[2]="JITTER",[3]="INVERT",[4]="RANDOM",[5]="SWAY"}
@@ -144,6 +154,8 @@ local St = {
     camLastDist = 12,
     rebinding = nil,
     glockLiverHidden = false,
+    aimbotTarget = nil,
+    aimbotLocked = false,
 }
 
 -- ============ REFERÊNCIAS ============
@@ -180,6 +192,7 @@ local Ref = {
     guiElements = {},
     fovCircle = nil,
     fovConn = nil,
+    aimbotConn = nil,
 }
 
 -- ============ GUI REFS ============
@@ -227,33 +240,30 @@ function setLocalTransp(char,t)
     end
 end
 
-function findGlockLiver()
-    if Ref.glockLiverCache and Ref.glockLiverCache.Parent then return Ref.glockLiverCache end
-    Ref.glockLiverCache = nil
-    local char = myChar()
-    if char then
-        local gl = char:FindFirstChild("GlockLiver") or char:FindFirstChild("GlockLiver", true)
-        if gl then Ref.glockLiverCache = gl; return gl end
-    end
-    local wsChar = workspace:FindFirstChild(me.Name)
-    if wsChar and wsChar ~= char then
-        local gl = wsChar:FindFirstChild("GlockLiver", true)
-        if gl then Ref.glockLiverCache = gl; return gl end
-    end
-    return nil
-end
-
-function setGlockLiverVisible(visible)
-    local gl = findGlockLiver()
-    if not gl then if not visible then St.glockLiverHidden = true end; return end
-    local mod = visible and 0 or 1
-    local function apply(o) if o:IsA("BasePart") or o:IsA("Decal") or o:IsA("Texture") then pcall(function() o.LocalTransparencyModifier = mod end) end end
-    apply(gl)
-    if gl:IsA("Model") or gl:IsA("Folder") then for _, desc in ipairs(gl:GetDescendants()) do apply(desc) end end
-    St.glockLiverHidden = not visible
-end
-
 function getgenv() return _G end
+
+function genUID()
+    return "{"..string.upper(string.gsub("xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx","[xy]",function(c)
+        local v=(c=="x") and math.random(0,15) or math.random(8,11)
+        return string.format("%x",v)
+    end)).."}"
+end
+
+function getHitParts(char)
+    if not char then return {} end
+    local out, seen = {}, {}
+    for _, n in ipairs({"Head","UpperTorso","Torso","HumanoidRootPart","LowerTorso"}) do
+        local p = char:FindFirstChild(n)
+        if p and p:IsA("BasePart") and not seen[p] then seen[p]=true; out[#out+1]=p end
+    end
+    if #out==0 then local p=getPart(char); if p then out[1]=p end end
+    return out
+end
+
+function getPart(char)
+    return char and (char:FindFirstChild("Head") or char:FindFirstChild("UpperTorso")
+        or char:FindFirstChild("Torso") or char:FindFirstChild("HumanoidRootPart"))
+end
 
 -- ============ FOV CIRCLE (NO CENTRO DA TELA) ============
 function createFOVCircle()
@@ -268,21 +278,21 @@ function createFOVCircle()
         Ref.fovConn = nil
     end
     
-    if not Cfg.FOV_VISIBLE or not Cfg.AIM_FOV_ON then return end
+    if not Cfg.FOV_VISIBLE or not Cfg.AIMBOT_ENABLED then return end
     
     local circle = Drawing.new("Circle")
     circle.Thickness = 1
-    circle.Color = Color3.fromRGB(255, 255, 255)
+    circle.Color = Color3.fromRGB(255, 40, 40)
     circle.Filled = false
     circle.NumSides = 48
-    circle.Transparency = 0.35
-    circle.Radius = Cfg.AIM_FOV / 2
+    circle.Transparency = 0.4
+    circle.Radius = Cfg.AIMBOT_FOV / 2
     circle.Visible = true
     
     Ref.fovCircle = circle
     
     Ref.fovConn = Svc.RunService.RenderStepped:Connect(function()
-        if not Ref.fovCircle or not Cfg.FOV_VISIBLE or not Cfg.AIM_FOV_ON then
+        if not Ref.fovCircle or not Cfg.FOV_VISIBLE or not Cfg.AIMBOT_ENABLED then
             if Ref.fovCircle then Ref.fovCircle.Visible = false end
             return
         end
@@ -290,7 +300,7 @@ function createFOVCircle()
         if not cam then return end
         local vp = cam.ViewportSize
         Ref.fovCircle.Position = Vector2.new(vp.X/2, vp.Y/2)
-        Ref.fovCircle.Radius = Cfg.AIM_FOV / 2
+        Ref.fovCircle.Radius = Cfg.AIMBOT_FOV / 2
         Ref.fovCircle.Visible = true
     end)
 end
@@ -314,50 +324,131 @@ function toggleFOV()
     end
 end
 
--- ============ TEAMMATES ============
-do
-    local function isTeammate(plr)
-        if not plr then return false end
-        return Ref.teammates[plr.UserId] == true
-    end
-    getgenv()._tsIsTeammate = isTeammate
-
-    local function detectMySide(data)
-        for _, entry in pairs(data.A or {}) do if entry.userId == me.UserId then return "A" end end
-        for _, entry in pairs(data.B or {}) do if entry.userId == me.UserId then return "B" end end
-        return "A"
-    end
-
-    local function rebuildTeammates(data)
-        Ref.teammates = {}
-        local mySide = detectMySide(data)
-        local myTeam = (mySide == "A") and data.A or data.B
-        if not myTeam then return end
-        for _, entry in pairs(myTeam) do
-            if entry.userId and entry.userId ~= me.UserId then
-                Ref.teammates[entry.userId] = true
-            end
+-- ============ AIMBOT ============
+function getClosestPlayerToMouse()
+    local cam = workspace.CurrentCamera
+    if not cam then return nil end
+    
+    local mousePos = Svc.UIS:GetMouseLocation()
+    local bestTarget = nil
+    local bestDist = math.huge
+    local origin = myOrigin()
+    
+    if not origin then return nil end
+    
+    for _, plr in ipairs(Svc.Players:GetPlayers()) do
+        if plr == me then continue end
+        if Cfg.SKIP_TEAMMATES and getgenv()._tsIsTeammate(plr) then continue end
+        
+        local char = plr.Character
+        if not char or not char.Parent then continue end
+        local hum = getHum(char)
+        if not isAlive(char, hum) then continue end
+        if Cfg.SKIP_FORCEFIELD and hasFF(char) then continue end
+        
+        local targetPart = nil
+        if Cfg.AIMBOT_TARGET == "HEAD" then
+            targetPart = char:FindFirstChild("Head")
+        elseif Cfg.AIMBOT_TARGET == "TORSO" then
+            targetPart = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
+        else
+            targetPart = getRoot(char) or char:FindFirstChild("Head")
+        end
+        
+        if not targetPart then continue end
+        
+        local targetPos = targetPart.Position
+        
+        -- Prediction
+        if Cfg.AIMBOT_PREDICT then
+            local vel = targetPart.AssemblyLinearVelocity
+            local dist = (origin - targetPos).Magnitude
+            local time = dist / 1500
+            targetPos = targetPos + vel * time
+        end
+        
+        -- Visible check
+        if Cfg.AIMBOT_VISIBLE_CHECK then
+            local ok, _ = rayHit(origin, targetPos, char)
+            if not ok then continue end
+        end
+        
+        -- FOV Check
+        local screenPos, onScreen = cam:WorldToViewportPoint(targetPos)
+        if not onScreen then continue end
+        
+        local distToMouse = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+        
+        if distToMouse < Cfg.AIMBOT_FOV / 2 and distToMouse < bestDist then
+            bestDist = distToMouse
+            bestTarget = {
+                plr = plr,
+                char = char,
+                part = targetPart,
+                pos = targetPos,
+                screenPos = screenPos,
+            }
         end
     end
+    
+    return bestTarget
+end
 
-    local function clearTeammates() Ref.teammates = {} end
-
-    local function hookArenaEvents()
-        local ok, arenaFolder = pcall(function() return Svc.RS:WaitForChild("Remotes", 5):WaitForChild("Arena", 5) end)
-        if not ok or not arenaFolder then task.delay(3, hookArenaEvents); return end
-        local syncOK, arenaSync = pcall(function() return arenaFolder:WaitForChild("ArenaSync", 5) end)
-        local clearOK, arenaClear = pcall(function() return arenaFolder:WaitForChild("ArenaClear", 5) end)
-        if syncOK and arenaSync then
-            Ref.teamConns[#Ref.teamConns+1] = arenaSync.OnClientEvent:Connect(function(data)
-                if type(data) ~= "table" then return end
-                rebuildTeammates(data)
-            end)
-        end
-        if clearOK and arenaClear then
-            Ref.teamConns[#Ref.teamConns+1] = arenaClear.OnClientEvent:Connect(function() clearTeammates() end)
-        end
+function startAimbot()
+    if Ref.aimbotConn then
+        pcall(function() Ref.aimbotConn:Disconnect() end)
+        Ref.aimbotConn = nil
     end
-    hookArenaEvents()
+    
+    if not Cfg.AIMBOT_ENABLED then return end
+    
+    Ref.aimbotConn = Svc.RunService.RenderStepped:Connect(function()
+        if not Cfg.AIMBOT_ENABLED then return end
+        
+        local holding = Svc.UIS:IsMouseButtonPressed(Cfg.AIMBOT_KEY)
+        if not holding then
+            St.aimbotLocked = false
+            return
+        end
+        
+        local target = getClosestPlayerToMouse()
+        if not target then
+            St.aimbotLocked = false
+            return
+        end
+        
+        local cam = workspace.CurrentCamera
+        if not cam then return end
+        
+        local currentCF = cam.CFrame
+        local targetPos = target.pos
+        local lookAt = CFrame.new(cam.CFrame.Position, targetPos)
+        
+        local smooth = Cfg.AIMBOT_SMOOTH
+        local newCF = currentCF:Lerp(lookAt, smooth)
+        
+        cam.CFrame = newCF
+        St.aimbotLocked = true
+    end)
+end
+
+function toggleAimbot()
+    Cfg.AIMBOT_ENABLED = not Cfg.AIMBOT_ENABLED
+    if Cfg.AIMBOT_ENABLED then
+        startAimbot()
+        if Cfg.FOV_VISIBLE then createFOVCircle() end
+        updateStatus("● AIMBOT ON", true)
+    else
+        if Ref.aimbotConn then
+            pcall(function() Ref.aimbotConn:Disconnect() end)
+            Ref.aimbotConn = nil
+        end
+        if Ref.fovCircle then
+            pcall(function() Ref.fovCircle.Visible = false end)
+        end
+        updateStatus("● AIMBOT OFF", false)
+    end
+    if GUI.toggles["AimBot"] then GUI.toggles["AimBot"](Cfg.AIMBOT_ENABLED) end
 end
 
 -- ============ IS ALIVE ============
@@ -462,6 +553,52 @@ do
     end
 end
 
+-- ============ TEAMMATES ============
+do
+    local function isTeammate(plr)
+        if not plr then return false end
+        return Ref.teammates[plr.UserId] == true
+    end
+    getgenv()._tsIsTeammate = isTeammate
+
+    local function detectMySide(data)
+        for _, entry in pairs(data.A or {}) do if entry.userId == me.UserId then return "A" end end
+        for _, entry in pairs(data.B or {}) do if entry.userId == me.UserId then return "B" end end
+        return "A"
+    end
+
+    local function rebuildTeammates(data)
+        Ref.teammates = {}
+        local mySide = detectMySide(data)
+        local myTeam = (mySide == "A") and data.A or data.B
+        if not myTeam then return end
+        for _, entry in pairs(myTeam) do
+            if entry.userId and entry.userId ~= me.UserId then
+                Ref.teammates[entry.userId] = true
+            end
+        end
+    end
+
+    local function clearTeammates() Ref.teammates = {} end
+
+    local function hookArenaEvents()
+        local ok, arenaFolder = pcall(function() return Svc.RS:WaitForChild("Remotes", 5):WaitForChild("Arena", 5) end)
+        if not ok or not arenaFolder then task.delay(3, hookArenaEvents); return end
+        local syncOK, arenaSync = pcall(function() return arenaFolder:WaitForChild("ArenaSync", 5) end)
+        local clearOK, arenaClear = pcall(function() return arenaFolder:WaitForChild("ArenaClear", 5) end)
+        if syncOK and arenaSync then
+            Ref.teamConns[#Ref.teamConns+1] = arenaSync.OnClientEvent:Connect(function(data)
+                if type(data) ~= "table" then return end
+                rebuildTeammates(data)
+            end)
+        end
+        if clearOK and arenaClear then
+            Ref.teamConns[#Ref.teamConns+1] = arenaClear.OnClientEvent:Connect(function() clearTeammates() end)
+        end
+    end
+    hookArenaEvents()
+end
+
 -- ============ FOV / LOS / AIM / ANTIWALLBANG ============
 function inFOV(worldPos)
     if not Cfg.AIM_FOV_ON or Cfg.AIM_FOV>=360 then return true end
@@ -563,22 +700,6 @@ function bestVisibleAim(origin, char)
     return nil,nil,nil
 end
 
-function getHitParts(char)
-    if not char then return {} end
-    local out, seen = {}, {}
-    for _, n in ipairs({"Head","UpperTorso","Torso","HumanoidRootPart","LowerTorso"}) do
-        local p = char:FindFirstChild(n)
-        if p and p:IsA("BasePart") and not seen[p] then seen[p]=true; out[#out+1]=p end
-    end
-    if #out==0 then local p=getPart(char); if p then out[1]=p end end
-    return out
-end
-
-function getPart(char)
-    return char and (char:FindFirstChild("Head") or char:FindFirstChild("UpperTorso")
-        or char:FindFirstChild("Torso") or char:FindFirstChild("HumanoidRootPart"))
-end
-
 function valid(plr)
     if plr==me then return false end
     if Cfg.SKIP_TEAMMATES and getgenv()._tsIsTeammate(plr) then return false end
@@ -654,13 +775,6 @@ local function fireEntry(entry,reason)
     updateStatus(("%d shots | %s"):format(St.shotCounter,reason))
     if Cfg.SHOT_DELAY>0 then task.wait(Cfg.SHOT_DELAY+math.random()*Cfg.JITTER_AMT) end
     maybeAutoReload(); return true
-end
-
-function genUID()
-    return "{"..string.upper(string.gsub("xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx","[xy]",function(c)
-        local v=(c=="x") and math.random(0,15) or math.random(8,11)
-        return string.format("%x",v)
-    end)).."}"
 end
 
 local function pickTargets()
@@ -949,12 +1063,10 @@ function toggleFP()
     if Cfg.FP_ON then
         startFPCamera()
         setLocalTransp(myChar(), 1)
-        setGlockLiverVisible(false)
         print("[PrivateProject] FP ON")
     else
         stopFPCamera()
         setLocalTransp(myChar(), 0)
-        setGlockLiverVisible(true)
         print("[PrivateProject] FP OFF")
     end
     if GUI.toggles["FP Camera"] then GUI.toggles["FP Camera"](Cfg.FP_ON) end
@@ -1276,16 +1388,16 @@ local function ensureESP(plr)
     elseif ex then destroyESP(plr) end
     local d={
         boxBg=mkDraw("Square",{Thickness=2,Color=Color3.new(0,0,0),Filled=false}),
-        box=mkDraw("Square",{Thickness=1,Color=Color3.fromRGB(255,255,255),Filled=false}),
+        box=mkDraw("Square",{Thickness=1,Color=Color3.fromRGB(255,40,40),Filled=false}),
         corners={},
         name=mkDraw("Text",{Center=true,Outline=true,OutlineColor=Color3.new(0,0,0),Color=Color3.new(1,1,1),Size=14,Font=2}),
         dist=mkDraw("Text",{Center=true,Outline=true,OutlineColor=Color3.new(0,0,0),Color=Color3.fromRGB(180,190,200),Size=12,Font=2}),
         hpBg=mkDraw("Square",{Thickness=0,Color=Color3.fromRGB(20,20,20),Filled=true}),
         hpFg=mkDraw("Square",{Thickness=0,Filled=true}),
-        snap=mkDraw("Line",{Thickness=1,Color=Color3.fromRGB(255,255,255),Transparency=0.55}),
+        snap=mkDraw("Line",{Thickness=1,Color=Color3.fromRGB(255,40,40),Transparency=0.55}),
         charRef=nil,
     }
-    for i=1,8 do d.corners[i]=mkDraw("Line",{Thickness=2,Color=Color3.fromRGB(255,255,255)}) end
+    for i=1,8 do d.corners[i]=mkDraw("Line",{Thickness=2,Color=Color3.fromRGB(255,40,40)}) end
     if not d.box or not d.name then
         for _,k in ipairs({"boxBg","box","name","dist","hpBg","hpFg","snap"}) do safeRem(d[k]) end
         for i=1,8 do safeRem(d.corners[i]) end; return nil
@@ -1333,7 +1445,7 @@ local function updateESP()
         elseif not inF then col=Color3.fromRGB(100,100,110)
         elseif hp<0.3 then col=Color3.fromRGB(255,55,55)
         elseif hp<0.6 then col=Color3.fromRGB(255,170,50)
-        else col=Color3.fromRGB(255,255,255) end
+        else col=Color3.fromRGB(255,40,40) end
         pcall(function()
             d.boxBg.Size=Vector2.new(w+2,h+2); d.boxBg.Position=Vector2.new(x-1,y-1); d.boxBg.Visible=true
             d.box.Size=Vector2.new(w,h); d.box.Position=Vector2.new(x,y); d.box.Color=col; d.box.Visible=true
@@ -1406,6 +1518,132 @@ end
 
 function toggleCamNoclip() if Cfg.CAM_NOCLIP then stopCamNoclip() else startCamNoclip() end end
 
+-- ============ CONFIG SAVE/LOAD ============
+function saveConfig()
+    local ok, err = pcall(function()
+        local cfgDir = "PrivateProject"
+        local cfgPath = "PrivateProject/Config.json"
+        if not isfolder(cfgDir) then makefolder(cfgDir) end
+        
+        local data = {
+            HIT_HASH = Cfg.HIT_HASH,
+            RELOAD_HASH = Cfg.RELOAD_HASH,
+            AMMO_VALUE = Cfg.AMMO_VALUE,
+            MAX_DIST = Cfg.MAX_DIST,
+            SHOT_DELAY = Cfg.SHOT_DELAY,
+            AIM_FOV = Cfg.AIM_FOV,
+            AIM_FOV_ON = Cfg.AIM_FOV_ON,
+            ANTI_WALLBANG = Cfg.ANTI_WALLBANG,
+            SKIP_TEAMMATES = Cfg.SKIP_TEAMMATES,
+            AUTO_RELOAD = Cfg.AUTO_RELOAD,
+            SKIP_FORCEFIELD = Cfg.SKIP_FORCEFIELD,
+            ONLY_NEAREST = Cfg.ONLY_NEAREST,
+            MINECRAFT_SWORD = Cfg.MINECRAFT_SWORD,
+            FP_ON = Cfg.FP_ON,
+            FP_SENS = Cfg.FP_SENS,
+            ESP_ON = Cfg.ESP_ON,
+            ESP_MAX = Cfg.ESP_MAX,
+            BHOP_ON = Cfg.BHOP_ON,
+            BHOP_MAX = Cfg.BHOP_MAX,
+            BHOP_ACCEL = Cfg.BHOP_ACCEL,
+            BHOP_STRAFE = Cfg.BHOP_STRAFE,
+            BHOP_JUMP_DIST = Cfg.BHOP_JUMP_DIST,
+            AA_MODE = Cfg.AA_MODE,
+            AA_SPEED = Cfg.AA_SPEED,
+            AA_JITTER = Cfg.AA_JITTER,
+            AA_SWAY = Cfg.AA_SWAY,
+            EMOTE_AA_ON = Cfg.EMOTE_AA_ON,
+            AA_EMOTE_SPEED = Cfg.AA_EMOTE_SPEED,
+            CAM_NOCLIP = Cfg.CAM_NOCLIP,
+            VM_X = Cfg.VM_X,
+            VM_Y = Cfg.VM_Y,
+            VM_Z = Cfg.VM_Z,
+            VM_RX = Cfg.VM_RX,
+            VM_RY = Cfg.VM_RY,
+            VM_RZ = Cfg.VM_RZ,
+            FOV_VISIBLE = Cfg.FOV_VISIBLE,
+            AIMBOT_ENABLED = Cfg.AIMBOT_ENABLED,
+            AIMBOT_SMOOTH = Cfg.AIMBOT_SMOOTH,
+            AIMBOT_FOV = Cfg.AIMBOT_FOV,
+            AIMBOT_PREDICT = Cfg.AIMBOT_PREDICT,
+            AIMBOT_VISIBLE_CHECK = Cfg.AIMBOT_VISIBLE_CHECK,
+            AIMBOT_TARGET = Cfg.AIMBOT_TARGET,
+        }
+        
+        local bindsData = {}
+        for action, kc in pairs(Binds) do
+            bindsData[action] = tostring(kc)
+        end
+        data._binds = bindsData
+        
+        writefile(cfgPath, Svc.Http:JSONEncode(data))
+        print("[PrivateProject] config saved ✓")
+    end)
+    if not ok then print("[PrivateProject] config save FAILED: "..tostring(err)) end
+end
+
+function loadConfig()
+    local ok, err = pcall(function()
+        local cfgPath = "PrivateProject/Config.json"
+        if not isfile(cfgPath) then print("[PrivateProject] no config file, using defaults"); return end
+        local raw = readfile(cfgPath)
+        if not raw or #raw == 0 then print("[PrivateProject] config file empty, skipping"); return end
+        local data = Svc.Http:JSONDecode(raw)
+        if type(data) ~= "table" then print("[PrivateProject] config parse error, skipping"); return end
+        
+        local configMap = {
+            HIT_HASH = "string", RELOAD_HASH = "string",
+            AMMO_VALUE = "number", MAX_DIST = "number", SHOT_DELAY = "number",
+            AIM_FOV = "number", AIM_FOV_ON = "boolean",
+            ANTI_WALLBANG = "boolean", SKIP_TEAMMATES = "boolean",
+            AUTO_RELOAD = "boolean", SKIP_FORCEFIELD = "boolean",
+            ONLY_NEAREST = "boolean", MINECRAFT_SWORD = "boolean",
+            FP_ON = "boolean", FP_SENS = "number",
+            ESP_ON = "boolean", ESP_MAX = "number",
+            BHOP_ON = "boolean", BHOP_MAX = "number",
+            BHOP_ACCEL = "number", BHOP_STRAFE = "number",
+            BHOP_JUMP_DIST = "number", AA_MODE = "number",
+            AA_SPEED = "number", AA_JITTER = "number",
+            AA_SWAY = "number", EMOTE_AA_ON = "boolean",
+            AA_EMOTE_SPEED = "number", CAM_NOCLIP = "boolean",
+            VM_X = "number", VM_Y = "number", VM_Z = "number",
+            VM_RX = "number", VM_RY = "number", VM_RZ = "number",
+            FOV_VISIBLE = "boolean",
+            AIMBOT_ENABLED = "boolean",
+            AIMBOT_SMOOTH = "number",
+            AIMBOT_FOV = "number",
+            AIMBOT_PREDICT = "boolean",
+            AIMBOT_VISIBLE_CHECK = "boolean",
+            AIMBOT_TARGET = "string",
+        }
+        
+        for key, typeCheck in pairs(configMap) do
+            if data[key] ~= nil then
+                if typeCheck == "boolean" then
+                    Cfg[key] = data[key] == true
+                elseif typeCheck == "number" then
+                    Cfg[key] = tonumber(data[key]) or Cfg[key]
+                elseif typeCheck == "string" then
+                    Cfg[key] = tostring(data[key])
+                end
+            end
+        end
+        
+        if type(data._binds) == "table" then
+            for action, kcStr in pairs(data._binds) do
+                if Binds[action] ~= nil and type(kcStr) == "string" then
+                    local keyPart = kcStr:gsub("Enum.KeyCode.", "")
+                    local ok2, kc = pcall(function() return Enum.KeyCode[keyPart] end)
+                    if ok2 and kc then Binds[action] = kc end
+                end
+            end
+        end
+        
+        print("[PrivateProject] config loaded ✓")
+    end)
+    if not ok then print("[PrivateProject] config load FAILED: "..tostring(err)) end
+end
+
 -- ============ STATUS ============
 function updateStatus(text, active)
     if GUI.statusLabel then
@@ -1450,6 +1688,16 @@ function createGUI()
     Ref.mainWindow = main
     Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
 
+    -- Red Glow Border
+    local glow = Instance.new("UIStroke", main)
+    glow.Color = Theme.red
+    glow.Thickness = 2
+    glow.Transparency = 0.3
+
+    local mainStroke = Instance.new("UIStroke", main)
+    mainStroke.Color = Theme.border
+    mainStroke.Thickness = 1
+
     -- Title Bar
     local titleBar = Instance.new("Frame", main)
     titleBar.Size = UDim2.new(1, 0, 0, 36)
@@ -1465,7 +1713,7 @@ function createGUI()
     titleText.ZIndex = 12
     titleText.Font = Enum.Font.GothamBold
     titleText.TextSize = 14
-    titleText.TextColor3 = Theme.accent
+    titleText.TextColor3 = Theme.red
     titleText.TextXAlignment = Enum.TextXAlignment.Left
     titleText.Text = "PRIVATE PROJECT"
 
@@ -1550,7 +1798,7 @@ function createGUI()
     GUI.logLabel.TextSize = 9
     GUI.logLabel.TextColor3 = Theme.textMuted
     GUI.logLabel.TextXAlignment = Enum.TextXAlignment.Right
-    GUI.logLabel.Text = "H to toggle FOV"
+    GUI.logLabel.Text = "H: FOV | X: Aimbot"
 
     -- Pages
     local pages = {}
@@ -1563,7 +1811,7 @@ function createGUI()
         page.BorderSizePixel = 0
         page.ZIndex = 11
         page.ScrollBarThickness = 3
-        page.ScrollBarImageColor3 = Theme.accent
+        page.ScrollBarImageColor3 = Theme.red
         page.CanvasSize = UDim2.new(0, 0, 0, 0)
         page.AutomaticCanvasSize = Enum.AutomaticSize.Y
         page.Visible = (i == 1)
@@ -1670,7 +1918,7 @@ function createGUI()
         valLbl.ZIndex = 12
         valLbl.Font = Enum.Font.Code
         valLbl.TextSize = 11
-        valLbl.TextColor3 = Theme.accent
+        valLbl.TextColor3 = Theme.red
         valLbl.TextXAlignment = Enum.TextXAlignment.Right
         valLbl.Text = tostring(default)
 
@@ -1749,7 +1997,7 @@ function createGUI()
         btn.ZIndex = 13
         btn.Font = Enum.Font.GothamBold
         btn.TextSize = 11
-        btn.TextColor3 = Theme.accent
+        btn.TextColor3 = Theme.red
         btn.Text = options[default] or "?"
         Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
         local stroke = Instance.new("UIStroke", btn)
@@ -1792,7 +2040,7 @@ function createGUI()
         bindBtn.ZIndex = 13
         bindBtn.Font = Enum.Font.Code
         bindBtn.TextSize = 11
-        bindBtn.TextColor3 = Theme.accent
+        bindBtn.TextColor3 = Theme.red
         bindBtn.Text = keyName(Binds[actionName])
         bindBtn.AutoButtonColor = false
         Instance.new("UICorner", bindBtn).CornerRadius = UDim.new(0, 5)
@@ -1806,8 +2054,8 @@ function createGUI()
             if St.rebinding then return end
             St.rebinding = actionName
             bindBtn.Text = "..."
-            bindBtn.TextColor3 = Theme.green
-            stroke.Color = Theme.green
+            bindBtn.TextColor3 = Theme.red
+            stroke.Color = Theme.red
 
             if Ref.rebindConn then pcall(function() Ref.rebindConn:Disconnect() end) end
             Ref.rebindConn = Svc.UIS.InputBegan:Connect(function(input, gp)
@@ -1816,7 +2064,7 @@ function createGUI()
                     local newKey = input.KeyCode
                     if newKey == Enum.KeyCode.Escape then
                         bindBtn.Text = keyName(Binds[actionName])
-                        bindBtn.TextColor3 = Theme.accent
+                        bindBtn.TextColor3 = Theme.red
                         stroke.Color = Theme.border
                         St.rebinding = nil
                         pcall(function() Ref.rebindConn:Disconnect() end)
@@ -1825,7 +2073,7 @@ function createGUI()
                     end
                     Binds[actionName] = newKey
                     bindBtn.Text = keyName(newKey)
-                    bindBtn.TextColor3 = Theme.accent
+                    bindBtn.TextColor3 = Theme.red
                     stroke.Color = Theme.border
                     St.rebinding = nil
                     pcall(function() Ref.rebindConn:Disconnect() end)
@@ -1837,7 +2085,7 @@ function createGUI()
             task.delay(5, function()
                 if St.rebinding == actionName then
                     bindBtn.Text = keyName(Binds[actionName])
-                    bindBtn.TextColor3 = Theme.accent
+                    bindBtn.TextColor3 = Theme.red
                     stroke.Color = Theme.border
                     St.rebinding = nil
                     if Ref.rebindConn then
@@ -1861,24 +2109,12 @@ function createGUI()
     makeToggle(combatPage, "Auto Reload", Cfg.AUTO_RELOAD, function(v) Cfg.AUTO_RELOAD = v end, 4)
     makeToggle(combatPage, "Skip ForceField", Cfg.SKIP_FORCEFIELD, function(v) Cfg.SKIP_FORCEFIELD = v end, 5)
     makeToggle(combatPage, "Only Nearest", Cfg.ONLY_NEAREST, function(v) Cfg.ONLY_NEAREST = v end, 6)
-    makeToggle(combatPage, "FOV Check", Cfg.AIM_FOV_ON, function(v) 
-        Cfg.AIM_FOV_ON = v
-        if v and Cfg.FOV_VISIBLE then createFOVCircle() 
-        else 
-            if Ref.fovCircle then Ref.fovCircle.Visible = false end
-        end
-    end, 7)
-    makeSlider(combatPage, "FOV", 30, 360, Cfg.AIM_FOV, function(v) 
-        Cfg.AIM_FOV = v
-        if Cfg.FOV_VISIBLE and Cfg.AIM_FOV_ON then createFOVCircle() end
-    end, 8, 5)
+    makeToggle(combatPage, "FOV Check", Cfg.AIM_FOV_ON, function(v) Cfg.AIM_FOV_ON = v end, 7)
+    makeSlider(combatPage, "FOV", 30, 360, Cfg.AIM_FOV, function(v) Cfg.AIM_FOV = v end, 8, 5)
     makeSlider(combatPage, "Max Distance", 50, 600, Cfg.MAX_DIST, function(v) Cfg.MAX_DIST = v end, 9, 10)
     makeSlider(combatPage, "Ammo", 1, 50, Cfg.AMMO_VALUE, function(v) Cfg.AMMO_VALUE = v end, 10, 1)
     makeSlider(combatPage, "Fire Delay (ms)", 1, 300, math.floor(Cfg.SHOT_DELAY * 1000), function(v) Cfg.SHOT_DELAY = v / 1000 end, 11, 1)
     makeSlider(combatPage, "AWB Delay (ms)", 0, 500, math.floor(Cfg.AWB_EXTRA_DELAY * 1000), function(v) Cfg.AWB_EXTRA_DELAY = v / 1000 end, 12, 10)
-    makeSlider(combatPage, "Shot Delay (ms)", 1, 200, math.floor(Cfg.SHOT_DELAY * 1000), function(v) Cfg.SHOT_DELAY = v / 1000 end, 13, 1)
-    makeSlider(combatPage, "Jitter Amount", 0, 0.1, Cfg.JITTER_AMT, function(v) Cfg.JITTER_AMT = v end, 14, 0.005)
-    makeSlider(combatPage, "Min Shot Interval", 0.01, 0.5, Cfg.MIN_SHOT_INTERVAL, function(v) Cfg.MIN_SHOT_INTERVAL = v end, 15, 0.01)
 
     -- Movement
     local movementPage = pages["Movement"]
@@ -1887,10 +2123,6 @@ function createGUI()
     makeSlider(movementPage, "Acceleration", 0.1, 5, Cfg.BHOP_ACCEL, function(v) Cfg.BHOP_ACCEL = v end, 3, 0.1)
     makeSlider(movementPage, "Strafe", 0.2, 3, Cfg.BHOP_STRAFE, function(v) Cfg.BHOP_STRAFE = v end, 4, 0.1)
     makeSlider(movementPage, "Jump Distance", 5, 50, Cfg.BHOP_JUMP_DIST, function(v) Cfg.BHOP_JUMP_DIST = v end, 5, 1)
-    makeSlider(movementPage, "Friction", 0.1, 1, Cfg.BHOP_FRICTION, function(v) Cfg.BHOP_FRICTION = v end, 6, 0.05)
-    makeSlider(movementPage, "Gain", 0.1, 2, Cfg.BHOP_GAIN, function(v) Cfg.BHOP_GAIN = v end, 7, 0.1)
-    makeSlider(movementPage, "Start Speed", 1, 40, Cfg.BHOP_START, function(v) Cfg.BHOP_START = v end, 8, 1)
-    makeSlider(movementPage, "Velocity", 5, 60, Cfg.BHOP_VEL, function(v) Cfg.BHOP_VEL = v end, 9, 1)
 
     -- Render
     local renderPage = pages["Render"]
@@ -1899,20 +2131,12 @@ function createGUI()
     makeToggle(renderPage, "Cam Noclip", Cfg.CAM_NOCLIP, function(v) if v then startCamNoclip() else stopCamNoclip() end end, 3)
     makeSlider(renderPage, "ESP Distance", 50, 800, Cfg.ESP_MAX, function(v) Cfg.ESP_MAX = v end, 4, 10)
     makeSlider(renderPage, "FP Sensitivity", 5, 100, math.floor(Cfg.FP_SENS * 100), function(v) Cfg.FP_SENS = v / 100 end, 5, 1)
-    makeSlider(renderPage, "FP Pitch Min", -90, 0, Cfg.FP_PITCH_MIN, function(v) Cfg.FP_PITCH_MIN = v end, 6, 1)
-    makeSlider(renderPage, "FP Pitch Max", 0, 90, Cfg.FP_PITCH_MAX, function(v) Cfg.FP_PITCH_MAX = v end, 7, 1)
-    makeSlider(renderPage, "LOS X Spread", 0.1, 3, Cfg.LOS_X_SPREAD, function(v) Cfg.LOS_X_SPREAD = v end, 8, 0.1)
-    makeSlider(renderPage, "LOS Y Spread", 0.1, 4, Cfg.LOS_Y_SPREAD, function(v) Cfg.LOS_Y_SPREAD = v end, 9, 0.1)
-    makeSlider(renderPage, "AFK Speed", 0.1, 5, Cfg.AFK_SPEED, function(v) Cfg.AFK_SPEED = v end, 10, 0.1)
 
     -- Player
     local playerPage = pages["Player"]
     local aaOpts = {}
     for i = 0, AA_COUNT - 1 do aaOpts[i+1] = AA_NAMES[i] end
-    makeCycle(playerPage, "Anti-Aim", aaOpts, Cfg.AA_MODE + 1, function(idx) 
-        Cfg.AA_MODE = idx - 1
-        applyAA() 
-    end, 1)
+    makeCycle(playerPage, "Anti-Aim", aaOpts, Cfg.AA_MODE + 1, function(idx) Cfg.AA_MODE = idx - 1; applyAA() end, 1)
     makeToggle(playerPage, "Emote AA", Cfg.EMOTE_AA_ON, function(v) if v then startEmoteAA() else stopEmoteAA() end end, 2)
     makeSlider(playerPage, "AA Speed", 5, 60, Cfg.AA_SPEED, function(v) Cfg.AA_SPEED = v end, 3, 1)
     makeSlider(playerPage, "AA Jitter", 10, 180, Cfg.AA_JITTER, function(v) Cfg.AA_JITTER = v end, 4, 5)
@@ -1921,21 +2145,37 @@ function createGUI()
 
     -- Weapon
     local weaponPage = pages["Weapon"]
-    makeToggle(weaponPage, "Minecraft Sword", Cfg.MINECRAFT_SWORD, function(v) 
-        Cfg.MINECRAFT_SWORD = v
-        showViewmodel(v) 
-    end, 1)
+    makeToggle(weaponPage, "Minecraft Sword", Cfg.MINECRAFT_SWORD, function(v) Cfg.MINECRAFT_SWORD = v; showViewmodel(v) end, 1)
     makeSlider(weaponPage, "VM X", -10, 10, Cfg.VM_X, function(v) Cfg.VM_X = v end, 2, 0.1)
     makeSlider(weaponPage, "VM Y", -10, 10, Cfg.VM_Y, function(v) Cfg.VM_Y = v end, 3, 0.1)
     makeSlider(weaponPage, "VM Z", -15, 5, Cfg.VM_Z, function(v) Cfg.VM_Z = v end, 4, 0.1)
     makeSlider(weaponPage, "VM RX", -180, 180, Cfg.VM_RX, function(v) Cfg.VM_RX = v end, 5, 5)
     makeSlider(weaponPage, "VM RY", -180, 360, Cfg.VM_RY, function(v) Cfg.VM_RY = v end, 6, 5)
     makeSlider(weaponPage, "VM RZ", -180, 180, Cfg.VM_RZ, function(v) Cfg.VM_RZ = v end, 7, 5)
-    makeSlider(weaponPage, "VM Pivot Y", -5, 5, Cfg.VM_PIVOT_Y, function(v) Cfg.VM_PIVOT_Y = v end, 8, 0.1)
-    makeSlider(weaponPage, "Swing Pivot X", -5, 5, Cfg.VM_SWING_X, function(v) Cfg.VM_SWING_X = v end, 9, 0.1)
-    makeSlider(weaponPage, "Swing Pivot Y", -5, 5, Cfg.VM_SWING_Y, function(v) Cfg.VM_SWING_Y = v end, 10, 0.1)
-    makeSlider(weaponPage, "Swing Pivot Z", -5, 5, Cfg.VM_SWING_Z, function(v) Cfg.VM_SWING_Z = v end, 11, 0.1)
-    makeSlider(weaponPage, "Swing Dir", -3, 3, Cfg.VM_SWING_DIR, function(v) Cfg.VM_SWING_DIR = v end, 12, 1)
+    makeSlider(weaponPage, "Swing Pivot X", -5, 5, Cfg.VM_SWING_X, function(v) Cfg.VM_SWING_X = v end, 8, 0.1)
+    makeSlider(weaponPage, "Swing Pivot Y", -5, 5, Cfg.VM_SWING_Y, function(v) Cfg.VM_SWING_Y = v end, 9, 0.1)
+    makeSlider(weaponPage, "Swing Pivot Z", -5, 5, Cfg.VM_SWING_Z, function(v) Cfg.VM_SWING_Z = v end, 10, 0.1)
+    
+    local swRow = Instance.new("Frame", weaponPage)
+    swRow.Size = UDim2.new(1, -16, 0, 32)
+    swRow.BackgroundTransparency = 1
+    swRow.ZIndex = 12
+    swRow.LayoutOrder = 11
+    local swBtn = Instance.new("TextButton", swRow)
+    swBtn.Size = UDim2.new(1, 0, 0, 26)
+    swBtn.Position = UDim2.new(0, 0, 0.5, -13)
+    swBtn.BackgroundColor3 = Theme.bgCard
+    swBtn.BorderSizePixel = 0
+    swBtn.ZIndex = 13
+    swBtn.Font = Enum.Font.GothamBold
+    swBtn.TextSize = 11
+    swBtn.TextColor3 = Theme.red
+    swBtn.Text = "TEST SWING"
+    Instance.new("UICorner", swBtn).CornerRadius = UDim.new(0, 6)
+    local ss = Instance.new("UIStroke", swBtn)
+    ss.Color = Theme.border
+    ss.Thickness = 1
+    swBtn.MouseButton1Click:Connect(function() triggerSwing() end)
 
     -- Misc
     local miscPage = pages["Misc"]
@@ -1949,6 +2189,27 @@ function createGUI()
     makeKeybind(miscPage, "CamNoclip", 8)
     makeKeybind(miscPage, "ToggleGUI", 9)
     makeKeybind(miscPage, "ToggleFOV", 10)
+    makeKeybind(miscPage, "AimBot", 11)
+
+    -- Aimbot Config
+    makeToggle(miscPage, "AimBot", Cfg.AIMBOT_ENABLED, function(v) 
+        Cfg.AIMBOT_ENABLED = v
+        if v then 
+            startAimbot()
+            if Cfg.FOV_VISIBLE then createFOVCircle() end
+        else 
+            if Ref.aimbotConn then
+                pcall(function() Ref.aimbotConn:Disconnect() end)
+                Ref.aimbotConn = nil
+            end
+        end
+    end, 30)
+
+    makeSlider(miscPage, "Aimbot Smooth", 0.01, 0.5, Cfg.AIMBOT_SMOOTH, function(v) Cfg.AIMBOT_SMOOTH = v end, 31, 0.01)
+    makeSlider(miscPage, "Aimbot FOV", 30, 360, Cfg.AIMBOT_FOV, function(v) 
+        Cfg.AIMBOT_FOV = v
+        if Cfg.FOV_VISIBLE and Cfg.AIMBOT_ENABLED then createFOVCircle() end
+    end, 32, 5)
 
     -- Action Buttons
     local function makeActionButton(parent, text, color, callback, order)
@@ -1980,20 +2241,16 @@ function createGUI()
         return row
     end
 
-    makeActionButton(miscPage, "🔁 TEST SWING", Theme.accent, function()
+    makeActionButton(miscPage, "🔁 TEST SWING", Theme.red, function()
         triggerSwing()
         updateStatus("● SWING!", true)
-        task.delay(0.8, function()
-            updateStatus("● IDLE", false)
-        end)
+        task.delay(0.8, function() updateStatus("● IDLE", false) end)
     end, 50)
 
-    makeActionButton(miscPage, "💾 SAVE CONFIG", Theme.green, function()
+    makeActionButton(miscPage, "💾 SAVE CONFIG", Theme.red, function()
         saveConfig()
         updateStatus("● CONFIG SAVED ✓", true)
-        task.delay(1.2, function()
-            updateStatus("● IDLE", false)
-        end)
+        task.delay(1.2, function() updateStatus("● IDLE", false) end)
     end, 51)
 
     makeActionButton(miscPage, "⛔ DESTROY", Theme.red, function()
@@ -2005,124 +2262,11 @@ function createGUI()
     -- Init
     if Cfg.MINECRAFT_SWORD then showViewmodel(true) end
     if Cfg.CAM_NOCLIP then startCamNoclip() end
-    if Cfg.FOV_VISIBLE and Cfg.AIM_FOV_ON then createFOVCircle() end
+    if Cfg.FOV_VISIBLE and Cfg.AIMBOT_ENABLED then createFOVCircle() end
+    if Cfg.AIMBOT_ENABLED then startAimbot() end
     updateStatus("● IDLE", false)
 
     return gui
-end
-
--- ============ CONFIG SAVE/LOAD ============
-function saveConfig()
-    local ok, err = pcall(function()
-        local cfgDir = "PrivateProject"
-        local cfgPath = "PrivateProject/Config.json"
-        if not isfolder(cfgDir) then makefolder(cfgDir) end
-        
-        local data = {
-            HIT_HASH = Cfg.HIT_HASH,
-            RELOAD_HASH = Cfg.RELOAD_HASH,
-            AMMO_VALUE = Cfg.AMMO_VALUE,
-            MAX_DIST = Cfg.MAX_DIST,
-            SHOT_DELAY = Cfg.SHOT_DELAY,
-            AIM_FOV = Cfg.AIM_FOV,
-            AIM_FOV_ON = Cfg.AIM_FOV_ON,
-            ANTI_WALLBANG = Cfg.ANTI_WALLBANG,
-            SKIP_TEAMMATES = Cfg.SKIP_TEAMMATES,
-            AUTO_RELOAD = Cfg.AUTO_RELOAD,
-            SKIP_FORCEFIELD = Cfg.SKIP_FORCEFIELD,
-            ONLY_NEAREST = Cfg.ONLY_NEAREST,
-            MINECRAFT_SWORD = Cfg.MINECRAFT_SWORD,
-            FP_ON = Cfg.FP_ON,
-            FP_SENS = Cfg.FP_SENS,
-            ESP_ON = Cfg.ESP_ON,
-            ESP_MAX = Cfg.ESP_MAX,
-            BHOP_ON = Cfg.BHOP_ON,
-            BHOP_MAX = Cfg.BHOP_MAX,
-            BHOP_ACCEL = Cfg.BHOP_ACCEL,
-            BHOP_STRAFE = Cfg.BHOP_STRAFE,
-            BHOP_JUMP_DIST = Cfg.BHOP_JUMP_DIST,
-            AA_MODE = Cfg.AA_MODE,
-            AA_SPEED = Cfg.AA_SPEED,
-            AA_JITTER = Cfg.AA_JITTER,
-            AA_SWAY = Cfg.AA_SWAY,
-            EMOTE_AA_ON = Cfg.EMOTE_AA_ON,
-            AA_EMOTE_SPEED = Cfg.AA_EMOTE_SPEED,
-            CAM_NOCLIP = Cfg.CAM_NOCLIP,
-            VM_X = Cfg.VM_X,
-            VM_Y = Cfg.VM_Y,
-            VM_Z = Cfg.VM_Z,
-            VM_RX = Cfg.VM_RX,
-            VM_RY = Cfg.VM_RY,
-            VM_RZ = Cfg.VM_RZ,
-            FOV_VISIBLE = Cfg.FOV_VISIBLE,
-        }
-        
-        local bindsData = {}
-        for action, kc in pairs(Binds) do
-            bindsData[action] = tostring(kc)
-        end
-        data._binds = bindsData
-        
-        writefile(cfgPath, Svc.Http:JSONEncode(data))
-        print("[PrivateProject] config saved ✓")
-    end)
-    if not ok then print("[PrivateProject] config save FAILED: "..tostring(err)) end
-end
-
-function loadConfig()
-    local ok, err = pcall(function()
-        local cfgPath = "PrivateProject/Config.json"
-        if not isfile(cfgPath) then print("[PrivateProject] no config file, using defaults"); return end
-        local raw = readfile(cfgPath)
-        if not raw or #raw == 0 then print("[PrivateProject] config file empty, skipping"); return end
-        local data = Svc.Http:JSONDecode(raw)
-        if type(data) ~= "table" then print("[PrivateProject] config parse error, skipping"); return end
-        
-        local configMap = {
-            HIT_HASH = "string", RELOAD_HASH = "string",
-            AMMO_VALUE = "number", MAX_DIST = "number", SHOT_DELAY = "number",
-            AIM_FOV = "number", AIM_FOV_ON = "boolean",
-            ANTI_WALLBANG = "boolean", SKIP_TEAMMATES = "boolean",
-            AUTO_RELOAD = "boolean", SKIP_FORCEFIELD = "boolean",
-            ONLY_NEAREST = "boolean", MINECRAFT_SWORD = "boolean",
-            FP_ON = "boolean", FP_SENS = "number",
-            ESP_ON = "boolean", ESP_MAX = "number",
-            BHOP_ON = "boolean", BHOP_MAX = "number",
-            BHOP_ACCEL = "number", BHOP_STRAFE = "number",
-            BHOP_JUMP_DIST = "number", AA_MODE = "number",
-            AA_SPEED = "number", AA_JITTER = "number",
-            AA_SWAY = "number", EMOTE_AA_ON = "boolean",
-            AA_EMOTE_SPEED = "number", CAM_NOCLIP = "boolean",
-            VM_X = "number", VM_Y = "number", VM_Z = "number",
-            VM_RX = "number", VM_RY = "number", VM_RZ = "number",
-            FOV_VISIBLE = "boolean",
-        }
-        
-        for key, typeCheck in pairs(configMap) do
-            if data[key] ~= nil then
-                if typeCheck == "boolean" then
-                    Cfg[key] = data[key] == true
-                elseif typeCheck == "number" then
-                    Cfg[key] = tonumber(data[key]) or Cfg[key]
-                elseif typeCheck == "string" then
-                    Cfg[key] = tostring(data[key])
-                end
-            end
-        end
-        
-        if type(data._binds) == "table" then
-            for action, kcStr in pairs(data._binds) do
-                if Binds[action] ~= nil and type(kcStr) == "string" then
-                    local keyPart = kcStr:gsub("Enum.KeyCode.", "")
-                    local ok2, kc = pcall(function() return Enum.KeyCode[keyPart] end)
-                    if ok2 and kc then Binds[action] = kc end
-                end
-            end
-        end
-        
-        print("[PrivateProject] config loaded ✓")
-    end)
-    if not ok then print("[PrivateProject] config load FAILED: "..tostring(err)) end
 end
 
 -- ============ KEYBINDS ============
@@ -2138,6 +2282,8 @@ Ref.connections[#Ref.connections + 1] = Svc.UIS.InputBegan:Connect(function(inpu
         if Ref.mainWindow then Ref.mainWindow.Visible = Cfg.GUI_VISIBLE end
     elseif k == Binds.ToggleFOV then
         toggleFOV()
+    elseif k == Binds.AimBot then
+        toggleAimbot()
     elseif k == Binds.KillAura then
         setRunning(not St.running)
     elseif k == Binds.ESP then
@@ -2184,9 +2330,10 @@ Ref.connections[#Ref.connections + 1] = me.CharacterAdded:Connect(function(char)
     if Cfg.AA_MODE ~= 0 then applyAA() end
     if Cfg.EMOTE_AA_ON then task.delay(0.5, function() startEmoteAA() end) end
     if Cfg.MINECRAFT_SWORD then task.delay(0.3, function() if Ref.vpModel and not Ref.vpConn then startVPSync() end end) end
-    if Cfg.FP_ON then task.delay(0.3, function() setLocalTransp(char, 1); setGlockLiverVisible(false); initFPAngles() end) end
+    if Cfg.FP_ON then task.delay(0.3, function() setLocalTransp(char, 1); initFPAngles() end) end
     if St.running then setRunning(true) end
-    if Cfg.FOV_VISIBLE and Cfg.AIM_FOV_ON then createFOVCircle() end
+    if Cfg.FOV_VISIBLE and Cfg.AIMBOT_ENABLED then createFOVCircle() end
+    if Cfg.AIMBOT_ENABLED then startAimbot() end
 end)
 
 Ref.connections[#Ref.connections + 1] = Svc.Players.PlayerRemoving:Connect(function(plr)
@@ -2218,6 +2365,7 @@ getgenv().PrivateProject = {
     sword = toggleSword,
     camnoclip = toggleCamNoclip,
     fov = toggleFOV,
+    aimbot = toggleAimbot,
     aa = function(m) if m then Cfg.AA_MODE = math.clamp(tonumber(m) or 0, 0, AA_COUNT - 1) end; applyAA() end,
     reload = function() fireReload("api") end,
     swing = function() triggerSwing() end,
@@ -2248,8 +2396,6 @@ getgenv().PrivateProject = {
         Cfg.GUI_VISIBLE = not Cfg.GUI_VISIBLE
         if Ref.mainWindow then Ref.mainWindow.Visible = Cfg.GUI_VISIBLE end
     end,
-    hideGlock = function() setGlockLiverVisible(false) end,
-    showGlock = function() setGlockLiverVisible(true) end,
     destroy = function()
         St.running = false
         St.combatToken = St.combatToken + 1
@@ -2259,7 +2405,6 @@ getgenv().PrivateProject = {
         if Cfg.FP_ON then
             stopFPCamera()
             setLocalTransp(myChar(), 0)
-            setGlockLiverVisible(true)
         end
         
         stopEmoteAA()
@@ -2267,6 +2412,11 @@ getgenv().PrivateProject = {
         stopAA()
         stopESP()
         stopCamNoclip()
+        
+        if Ref.aimbotConn then
+            pcall(function() Ref.aimbotConn:Disconnect() end)
+            Ref.aimbotConn = nil
+        end
         
         if Ref.fovCircle then
             pcall(function() Ref.fovCircle.Visible = false end)
@@ -2301,5 +2451,5 @@ getgenv().PrivateProject = {
     end,
 }
 
-print("[PrivateProject] v2.0 · Made By Uriel")
-print("[PrivateProject] H to toggle FOV circle | \\ to toggle GUI")
+print("[Private Project] v2.0 · Made By Uriel")
+print("[Private Project] H: FOV | X: Aimbot | \\: GUI")
