@@ -1,4 +1,4 @@
--- NexXit Painel RBLX v1.0
+-- Private Project v1.0
 -- Made By NexXit
 -- Professional Black & White Theme
 -- AIMBOT: Mira na cabeça automática ao mirar
