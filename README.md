@@ -275,7 +275,7 @@ function createFOVCircle()
     circle.Color = Color3.fromRGB(255, 255, 255)
     circle.Filled = false
     circle.NumSides = 48
-    circle.Transparency = 0.4
+    circle.Transparency = 0.35
     circle.Radius = Cfg.AIM_FOV / 2
     circle.Visible = true
     
@@ -299,6 +299,7 @@ function toggleFOV()
     Cfg.FOV_VISIBLE = not Cfg.FOV_VISIBLE
     if Cfg.FOV_VISIBLE then
         createFOVCircle()
+        updateStatus("● FOV ON", true)
     else
         if Ref.fovCircle then
             pcall(function() Ref.fovCircle.Visible = false end)
@@ -309,8 +310,8 @@ function toggleFOV()
             pcall(function() Ref.fovConn:Disconnect() end)
             Ref.fovConn = nil
         end
+        updateStatus("● FOV OFF", false)
     end
-    updateStatus(Cfg.FOV_VISIBLE and "● FOV ON" or "● FOV OFF", Cfg.FOV_VISIBLE)
 end
 
 -- ============ TEAMMATES ============
